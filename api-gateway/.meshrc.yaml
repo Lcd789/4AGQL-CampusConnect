@@ -1,0 +1,20 @@
+sources:
+  - name: AuthService
+    handler:
+      graphql:
+        endpoint: ${AUTH_SERVICE_URL}
+  - name: GradeService
+    handler:
+      graphql:
+        endpoint: ${GRADE_SERVICE_URL}
+  - name: ClassService
+    handler:
+      graphql:
+        endpoint: ${CLASS_SERVICE_URL}
+
+# additionalResolvers:
+#   - targetTypeName: Query
+#     targetFieldName: _sdl
+#     sourceName: AuthService
+#     sourceTypeName: Query
+#     sourceFieldName: _sdl

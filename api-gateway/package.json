@@ -1,0 +1,24 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "description": "GraphQL API Gateway for SchoolInc",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "mesh dev",
+    "start": "mesh start",
+    "build": "mesh build",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@graphql-mesh/cli": "^0.100.2",
+    "@graphql-mesh/graphql": "^0.104.2",
+    "graphql": "^16.10.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

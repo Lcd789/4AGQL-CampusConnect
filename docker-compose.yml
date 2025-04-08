@@ -1,0 +1,120 @@
+services:
+    auth-service:
+        build: ./micro-services/auth-service
+        ports:
+            - "8080:8080"
+        environment:
+            - MONGO_URI=mongodb://auth-db:27017/auth
+            - JWT_SECRET=YRMCKrygcXtx1bVpEMcBKIK9LxX8aDUTUQy2XyuLRCbnoPOhxUeIPqIQW01UfC6QgEKETKf2rM9UQnc4FkRSxA
+        depends_on:
+            - auth-db
+        networks:
+            - campus-connect
+
+    grade-service:
+        build: ./micro-services/grade-service
+        ports:
+            - "8081:8081"
+        environment:
+            - MONGO_URI=mongodb://grade-db:27017/grades
+            - AUTH_SERVICE_URL=http://auth-service:8080/graphql
+        depends_on:
+            - grade-db
+            - auth-service
+        networks:
+            - campus-connect
+
+    class-service:
+        build: ./micro-services/class-service
+        ports:
+            - "8082:8082"
+        environment:
+            - MONGO_URI=mongodb://class-db:27017/classes
+            - AUTH_SERVICE_URL=http://auth-service:8080/graphql
+            - GRADE_SERVICE_URL=http://grade-service:8081/graphql
+        depends_on:
+            - class-db
+            - auth-service
+        networks:
+            - campus-connect
+
+    auth-db:
+        image: mongo:latest
+        ports:
+            - "27017:27017"
+        volumes:
+            - auth-data:/data/db
+        networks:
+            - campus-connect
+
+    grade-db:
+        image: mongo:latest
+        ports:
+            - "27018:27017"
+        volumes:
+            - grade-data:/data/db
+        networks:
+            - campus-connect
+
+    class-db:
+        image: mongo:latest
+        ports:
+            - "27019:27017"
+        volumes:
+            - class-data:/data/db
+        networks:
+            - campus-connect
+    nginx-lb:
+        build: ./nginx-lb
+        container_name: nginx-lb
+        ports:
+            - "80:80"
+        depends_on:
+            - api-gateway-1
+            - api-gateway-2
+            - frontend
+        networks:
+            - campus-connect
+    api-gateway-1:
+        build: ./api-gateway
+        ports:
+            - "4000"
+        environment:
+            - AUTH_SERVICE_URL=http://auth-service:8080/graphql
+            - GRADE_SERVICE_URL=http://grade-service:8081/graphql
+            - CLASS_SERVICE_URL=http://class-service:8082/graphql
+        networks:
+            - campus-connect
+
+    api-gateway-2:
+        build: ./api-gateway
+        container_name: api-gateway-2
+        restart: always
+        ports:
+            - "4000"
+        environment:
+            - AUTH_SERVICE_URL=http://auth-service:8080/graphql
+            - GRADE_SERVICE_URL=http://grade-service:8081/graphql
+            - CLASS_SERVICE_URL=http://class-service:8082/graphql
+        networks:
+            - campus-connect
+
+    frontend:
+        build: ./CampusConnect
+        container_name: frontend
+        restart: always
+        environment:
+            - VITE_API_BASE_URL=http://localhost/api
+        ports:
+            - "3000:3000"
+        networks:
+            - campus-connect
+
+networks:
+    campus-connect:
+        driver: bridge
+
+volumes:
+    auth-data:
+    grade-data:
+    class-data:

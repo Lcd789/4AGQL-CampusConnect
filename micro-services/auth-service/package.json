@@ -1,0 +1,29 @@
+{
+    "name": "auth-service",
+    "version": "1.0.0",
+    "description": "Authentication Service for SchoolInc",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "test": "jest"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "dependencies": {
+        "@apollo/server": "^4.9.5",
+        "bcryptjs": "^2.4.3",
+        "body-parser": "^1.20.2",
+        "cors": "^2.8.5",
+        "express": "^4.21.2",
+        "graphql": "^16.10.0",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.2.0"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "nodemon": "^3.1.9"
+    }
+}

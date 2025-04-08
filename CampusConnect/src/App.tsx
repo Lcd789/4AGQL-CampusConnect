@@ -20,7 +20,7 @@ import ProfessorDashboard from "./pages/professor/ProfessorDashBoard";
 //import RoleBasedRoute from "./components/structure/RoleBasedRoute";
 
 const client = new ApolloClient({
-  uri: 'http://localhost/api/graphql',
+  uri: 'http://localhost:4000/graphql',
   cache: new InMemoryCache(),
 });
 

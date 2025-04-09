@@ -1,0 +1,47 @@
+serve:
+  port: 4000
+  hostname: 0.0.0.0
+  playground: true
+
+sources:
+  - name: AuthService
+    handler:
+      graphql:
+        endpoint: ${AUTH_SERVICE_URL}
+        operationHeaders:
+          Authorization: Bearer {context.headers.authorization}
+        timeout: 5000
+        retry: 3
+  - name: GradeService
+    handler:
+      graphql:
+        endpoint: ${GRADE_SERVICE_URL}
+        operationHeaders:
+          Authorization: Bearer {context.headers.authorization}
+        timeout: 5000
+        retry: 3
+  - name: ClassService
+    handler:
+      graphql:
+        endpoint: ${CLASS_SERVICE_URL}
+        operationHeaders:
+          Authorization: Bearer {context.headers.authorization}
+        timeout: 5000
+        retry: 3
+transforms:
+  - rename:
+      renames:
+        - from: Query.authService_*
+          to: auth_*
+        - from: Query.gradeService_*
+          to: grade_*
+        - from: Query.classService_*
+          to: class_*
+
+
+# additionalResolvers:
+#   - targetTypeName: Query
+#     targetFieldName: _sdl
+#     sourceName: AuthService
+#     sourceTypeName: Query
+#     sourceFieldName: _sdl

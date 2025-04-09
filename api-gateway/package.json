@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "mesh dev",
+    "dev": "mesh dev --port 4000 --hostname 0.0.0.0",
     "start": "mesh start",
     "build": "mesh build",
     "test": "jest"
@@ -14,8 +14,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@graphql-mesh/cli": "^0.100.2",
+    "@graphql-mesh/cli": "^0.100.3",
+    "@graphql-mesh/config": "^0.108.3",
     "@graphql-mesh/graphql": "^0.104.2",
+    "@graphql-mesh/runtime": "^0.106.2",
+    "@graphql-mesh/transform-rename": "^0.105.3",
     "graphql": "^16.10.0"
   },
   "devDependencies": {

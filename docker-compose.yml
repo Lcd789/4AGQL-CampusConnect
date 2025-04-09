@@ -1,8 +1,9 @@
 services:
     auth-service:
         build: ./micro-services/auth-service
+        container_name: auth-service
         ports:
-            - "8080:8080"
+            - "8080"
         environment:
             - MONGO_URI=mongodb://auth-db:27017/auth
             - JWT_SECRET=YRMCKrygcXtx1bVpEMcBKIK9LxX8aDUTUQy2XyuLRCbnoPOhxUeIPqIQW01UfC6QgEKETKf2rM9UQnc4FkRSxA
@@ -13,8 +14,9 @@ services:
 
     grade-service:
         build: ./micro-services/grade-service
+        container_name: grade-service
         ports:
-            - "8081:8081"
+            - "8081"
         environment:
             - MONGO_URI=mongodb://grade-db:27017/grades
             - AUTH_SERVICE_URL=http://auth-service:8080/graphql
@@ -26,8 +28,9 @@ services:
 
     class-service:
         build: ./micro-services/class-service
+        container_name: class-service
         ports:
-            - "8082:8082"
+            - "8082"
         environment:
             - MONGO_URI=mongodb://class-db:27017/classes
             - AUTH_SERVICE_URL=http://auth-service:8080/graphql
@@ -64,34 +67,11 @@ services:
             - class-data:/data/db
         networks:
             - campus-connect
-    nginx-lb:
-        build: ./nginx-lb
-        container_name: nginx-lb
-        ports:
-            - "80:80"
-        depends_on:
-            - api-gateway-1
-            - api-gateway-2
-            - frontend
-        networks:
-            - campus-connect
-    api-gateway-1:
+    api-gateway:
         build: ./api-gateway
+        container_name: api-gateway
         ports:
-            - "4000"
-        environment:
-            - AUTH_SERVICE_URL=http://auth-service:8080/graphql
-            - GRADE_SERVICE_URL=http://grade-service:8081/graphql
-            - CLASS_SERVICE_URL=http://class-service:8082/graphql
-        networks:
-            - campus-connect
-
-    api-gateway-2:
-        build: ./api-gateway
-        container_name: api-gateway-2
-        restart: always
-        ports:
-            - "4000"
+            - "4000:4000"
         environment:
             - AUTH_SERVICE_URL=http://auth-service:8080/graphql
             - GRADE_SERVICE_URL=http://grade-service:8081/graphql
@@ -104,11 +84,24 @@ services:
         container_name: frontend
         restart: always
         environment:
-            - VITE_API_BASE_URL=http://localhost/api
+            - VITE_API_BASE_URL=http://localhost:4000/graphql
         ports:
-            - "3000:3000"
+            - "3000"
         networks:
             - campus-connect
+
+    nginx-lb:
+        build: ./nginx-lb
+        container_name: nginx-lb
+        restart: always
+        ports:
+            -   "80:80"
+        depends_on:
+            -   api-gateway
+        networks:
+            - campus-connect
+
+
 
 networks:
     campus-connect:

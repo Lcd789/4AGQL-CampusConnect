@@ -1,102 +1,75 @@
 // src/components/structure/Footer.tsx
-import { Box, Container, Grid, Typography, Link, Divider, IconButton } from "@mui/material";
-import { Facebook, Twitter, LinkedIn, Instagram, GitHub } from "@mui/icons-material";
+import { Box, Container, Typography, Link, IconButton, Stack } from "@mui/material";
+import { Facebook, Twitter, LinkedIn, Instagram } from "@mui/icons-material";
 
 const Footer = () => {
     return (
         <Box
             component="footer"
             sx={{
-                bgcolor: "primary.main", // Utilise la couleur primaire de votre thème
+                bgcolor: "primary.main",
                 color: "white",
-                py: 6, // Padding vertical plus important
-                mt: "auto", // Pousse le footer en bas si le contenu ne remplit pas la page
+                py: 4,
+                mt: "auto",
             }}
         >
             <Container maxWidth="lg">
-                <Grid container spacing={4} justifyContent="center">
-                    {/* Colonne Logo et Description */}
-                    <Grid item xs={12} sm={4} md={4}>
-                        <Typography variant="h6" gutterBottom fontWeight="bold">
-                            CampusConnect
-                        </Typography>
-                        <Typography variant="body2" paragraph>
-                            Votre plateforme éducative complète pour connecter étudiants et professeurs dans un environnement d'apprentissage moderne.
-                        </Typography>
-                    </Grid>
+                {/* Logo et description */}
+                <Box sx={{ mb: 3, textAlign: "center" }}>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        CampusConnect
+                    </Typography>
+                    <Typography variant="body2" sx={{ maxWidth: "600px", mx: "auto" }}>
+                        Votre plateforme éducative complète pour connecter étudiants et professeurs
+                        dans un environnement d'apprentissage moderne.
+                    </Typography>
+                </Box>
 
-                    {/* Colonne Liens Utiles */}
-                    <Grid item xs={12} sm={4} md={4}>
-                        <Typography variant="h6" gutterBottom fontWeight="bold">
+                {/* Liens et contact en flexbox */}
+                <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4, mb: 3 }}>
+                    {/* Liens Utiles */}
+                    <Box sx={{ minWidth: "200px" }}>
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                             Liens Utiles
                         </Typography>
-                        <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Link href="/" color="inherit" underline="hover">
-                                    Accueil
-                                </Link>
-                            </Box>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Link href="/about" color="inherit" underline="hover">
-                                    À propos
-                                </Link>
-                            </Box>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Link href="/faq" color="inherit" underline="hover">
-                                    FAQ
-                                </Link>
-                            </Box>
-                            <Box component="li" sx={{ mb: 1 }}>
-                                <Link href="/contact" color="inherit" underline="hover">
-                                    Contact
-                                </Link>
-                            </Box>
-                        </Box>
-                    </Grid>
+                        <Stack spacing={1}>
+                            <Link href="/" color="inherit" underline="hover">Accueil</Link>
+                            <Link href="/about" color="inherit" underline="hover">À propos</Link>
+                            <Link href="/faq" color="inherit" underline="hover">FAQ</Link>
+                            <Link href="/contact" color="inherit" underline="hover">Contact</Link>
+                        </Stack>
+                    </Box>
 
-                    {/* Colonne Contact */}
-                    <Grid item xs={12} sm={4} md={4}>
-                        <Typography variant="h6" gutterBottom fontWeight="bold">
+                    {/* Contact */}
+                    <Box sx={{ minWidth: "200px" }}>
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                             Contact
                         </Typography>
-                        <Typography variant="body2" paragraph>
-                            support@campusconnect.fr
-                        </Typography>
-                        <Typography variant="body2" paragraph>
-                            +33 (0)1 23 45 67 89
-                        </Typography>
-                        <Box sx={{ mt: 2 }}>
-                            <IconButton aria-label="facebook" sx={{ color: "white", mr: 1 }}>
+                        <Typography variant="body2">support@campusconnect.fr</Typography>
+                        <Typography variant="body2" sx={{ mb: 2 }}>+33 (0)1 23 45 67 89</Typography>
+
+                        {/* Icônes sociales */}
+                        <Box>
+                            <IconButton aria-label="facebook" size="small" sx={{ color: "white", mr: 1 }}>
                                 <Facebook />
                             </IconButton>
-                            <IconButton aria-label="twitter" sx={{ color: "white", mr: 1 }}>
+                            <IconButton aria-label="twitter" size="small" sx={{ color: "white", mr: 1 }}>
                                 <Twitter />
                             </IconButton>
-                            <IconButton aria-label="linkedin" sx={{ color: "white", mr: 1 }}>
+                            <IconButton aria-label="linkedin" size="small" sx={{ color: "white", mr: 1 }}>
                                 <LinkedIn />
                             </IconButton>
-                            <IconButton aria-label="instagram" sx={{ color: "white" }}>
+                            <IconButton aria-label="instagram" size="small" sx={{ color: "white" }}>
                                 <Instagram />
                             </IconButton>
                         </Box>
-                    </Grid>
-                </Grid>
-
-                <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.2)", my: 3 }} />
-
-                <Box sx={{ textAlign: "center" }}>
-                    <Typography variant="body2">
-                        &copy; {new Date().getFullYear()} CampusConnect - Tous droits réservés
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                        <Link href="/privacy" color="inherit" underline="hover" sx={{ mx: 1 }}>
-                            Politique de confidentialité
-                        </Link>
-                        <Link href="/terms" color="inherit" underline="hover" sx={{ mx: 1 }}>
-                            Conditions d'utilisation
-                        </Link>
                     </Box>
                 </Box>
+
+                {/* Copyright */}
+                <Typography variant="body2" sx={{ textAlign: "center", pt: 2 }}>
+                    © {new Date().getFullYear()} CampusConnect. Tous droits réservés.
+                </Typography>
             </Container>
         </Box>
     );

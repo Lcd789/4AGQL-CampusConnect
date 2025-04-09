@@ -6,6 +6,7 @@ import Header from "./components/structure/Header";
 import Footer from "./components/structure/Footer";
 import PrivateRoute from "./components/structure/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
+import NotFound from "./components/structure/NotFound.tsx"
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Home from "./pages/common/Home";
@@ -58,6 +59,10 @@ function App() {
                     <Route path="/grade-management" element={<GradeManagement />} />
                     <Route path="/class-management" element={<ClassManagement />} />
                   </Route>
+
+                  {/* Route 404 pour toutes les autres URL */}
+                  <Route path="*" element={<NotFound />} />
+
                 </Routes>
               </div>
               {/* Le footer sera toujours en bas */}

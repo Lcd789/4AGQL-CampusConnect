@@ -6,42 +6,49 @@ const {
 } = require("graphql");
 const Class = require("../models/Class");
 const Enrollment = require("../models/Enrollment");
-const { ClassType, EnrollmentType } = require("./types");
+const { ClassType, EnrollmentType, ClassInputType} = require("./types");
 
 const mutations = {
     createClass: {
         type: ClassType,
         args: {
-            name: { type: new GraphQLNonNull(GraphQLString) },
-            description: { type: GraphQLString },
-            courseId: { type: new GraphQLNonNull(GraphQLID) },
+            input: { type: new GraphQLNonNull(ClassInputType) },
         },
-        resolve: async (_, { name, description, courseId }, { user }) => {
+        resolve: async (_, { input }, { user }) => {
+            // Vérification que l'utilisateur est authentifié et est un professeur
             if (!user || user.role !== "professor") {
                 throw new Error("Not authorized");
             }
 
-            // Vérifier si le cours existe via le service des notes
-            // Ce serait une implémentation réelle, mais pour simplifier, nous allons juste créer la classe
+            try {
+                // Création de la nouvelle classe
+                const newClass = new Class({
+                    title: input.title,
+                    description: input.description,
+                    start: input.start,
+                    end: input.end,
+                    room: input.room,
+                    color: input.color || "#4A90E2", // Couleur par défaut si non spécifiée
+                    professorId: user.id,
+                    courseId: input.courseId
+                });
 
-            const newClass = new Class({
-                name,
-                description,
-                professorId: user.id,
-                courseId,
-            });
-
-            return newClass.save();
-        },
+                // Sauvegarde dans la base de données
+                return await newClass.save();
+            } catch (error) {
+                console.error("Error creating class:", error);
+                throw new Error("Failed to create class");
+            }
+        }
     },
+
     updateClass: {
         type: ClassType,
         args: {
             id: { type: new GraphQLNonNull(GraphQLID) },
-            name: { type: GraphQLString },
-            description: { type: GraphQLString },
+            input: { type: new GraphQLNonNull(ClassInputType) },
         },
-        resolve: async (_, { id, name, description }, { user }) => {
+        resolve: async (_, { id, input }, { user }) => {
             if (!user || user.role !== "professor") {
                 throw new Error("Not authorized");
             }
@@ -49,18 +56,25 @@ const mutations = {
             const classObj = await Class.findById(id);
             if (!classObj) throw new Error("Class not found");
 
-            // Vérifier si le professeur est propriétaire de la classe
             if (classObj.professorId.toString() !== user.id) {
                 throw new Error("Not authorized to update this class");
             }
 
-            const updates = {};
-            if (name) updates.name = name;
-            if (description !== undefined) updates.description = description;
-
-            return Class.findByIdAndUpdate(id, updates, { new: true });
+            return Class.findByIdAndUpdate(
+                id,
+                {
+                    title: input.title,
+                    description: input.description,
+                    start: input.start,
+                    end: input.end,
+                    room: input.room,
+                    color: input.color
+                },
+                { new: true }
+            );
         },
     },
+
     deleteClass: {
         type: GraphQLBoolean,
         args: {
@@ -74,21 +88,22 @@ const mutations = {
             const classObj = await Class.findById(id);
             if (!classObj) throw new Error("Class not found");
 
-            // Vérifier si le professeur est propriétaire de la classe
             if (classObj.professorId.toString() !== user.id) {
                 throw new Error("Not authorized to delete this class");
             }
 
-            // Vérifier s'il y a des étudiants inscrits
-            const enrollments = await Enrollment.find({ classId: id });
-            if (enrollments.length > 0) {
-                throw new Error("Cannot delete class with enrolled students");
+            const enrollments = await Enrollment.find({
+                classId: id
+            })
+            if(enrollments.length > 0) {
+                throw new Error("Cannot delete class with enrolled students. Please remove students first.");
             }
 
             await Class.findByIdAndDelete(id);
             return true;
         },
     },
+
     enrollStudent: {
         type: EnrollmentType,
         args: {

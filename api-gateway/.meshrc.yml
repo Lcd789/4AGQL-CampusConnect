@@ -37,11 +37,3 @@ transforms:
           to: grade_*
         - from: Query.classService_*
           to: class_*
-
-
-# additionalResolvers:
-#   - targetTypeName: Query
-#     targetFieldName: _sdl
-#     sourceName: AuthService
-#     sourceTypeName: Query
-#     sourceFieldName: _sdl

@@ -1,6 +1,6 @@
 const { GraphQLSchema, GraphQLObjectType } = require("graphql");
 const queries = require("./queries");
-const mutations = require("./mutation");
+const mutations = require("./mutations");
 
 // GraphQL Schema
 const schema = new GraphQLSchema({

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "generate": "graphql-codegen",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "test:watch": "vitest",

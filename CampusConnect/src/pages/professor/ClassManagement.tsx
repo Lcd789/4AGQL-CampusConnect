@@ -1,508 +1,472 @@
-// src/pages/professor/ClassManagement.tsx
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useProfessorClasses, useClassEnrollments, GET_CLASS_ENROLLMENTS } from '../../api/classes/classQueries';
+import { useCreateClass, useDeleteClass } from '../../api/classes/classMutations';
 import {
-  Container,
-  Paper,
-  Typography,
   Box,
+  Button,
+  Container,
+  Typography,
+  Grid,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Card,
+  CardContent,
+  IconButton,
+  Chip,
   Snackbar,
   Alert,
+  TableSortLabel,
   CircularProgress,
-  Grid
+  Tooltip
 } from '@mui/material';
-import { z } from 'zod';
-import { EventClickArg } from '@fullcalendar/core/index.js';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  School as SchoolIcon,
+  CalendarMonth as CalendarIcon,
+  Group as GroupIcon
+} from '@mui/icons-material';
+import {Class} from "../../api/types.ts";
 
-// Requêtes GraphQL
-const GET_CLASSES = gql`
-  query GetClasses {
-    professorClasses {
-      id
-      title
-      description
-      start
-      end
-      room
-      color
-    }
-  }
-`;
+interface EnrollmentData {
+  classId: string;
+  count: number;
+}
 
-const CREATE_CLASS = gql`
-  mutation CreateClass($input: ClassInput!) {
-    createClass(input: $input) {
-      id
-      title
-      start
-      end
-    }
-  }
-`;
+const ClassManagement: React.FC = () => {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [orderBy, setOrderBy] = useState<keyof Class>('title');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('success');
+  const [enrollmentCounts, setEnrollmentCounts] = useState<EnrollmentData[]>([]);
 
-const UPDATE_CLASS = gql`
-  mutation UpdateClass($id: ID!, $input: ClassInput!) {
-    updateClass(id: $id, input: $input) {
-      id
-      title
-      start
-      end
-    }
-  }
-`;
-
-const DELETE_CLASS = gql`
-  mutation DeleteClass($id: ID!) {
-    deleteClass(id: $id)
-  }
-`;
-
-// Schéma Zod pour la validation du formulaire de classe
-const classSchema = z.object({
-  title: z.string().min(3, { message: "Le titre doit contenir au moins 3 caractères" }),
-  description: z.string().optional(),
-  start: z.string().min(1, { message: "La date de début est requise" }),
-  end: z.string().min(1, { message: "La date de fin est requise" }),
-  room: z.string().min(1, { message: "La salle est requise" }),
-  color: z.string().optional()
-});
-
-type ClassFormData = z.infer<typeof classSchema>;
-
-const ClassManagement = () => {
-  const [openDialog, setOpenDialog] = useState(false);
-  const [currentClass, setCurrentClass] = useState<ClassFormData & { id?: string }>({
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     start: '',
     end: '',
     room: '',
-    color: '#3788d8' // Couleur par défaut
-  });
-  
-  const [isEditing, setIsEditing] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof ClassFormData, string>>>({});
-  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success'
+    color: '#4A90E2',
+    courseId: ''
   });
 
-  // Requêtes GraphQL
-  const { loading, error, data, refetch } = useQuery(GET_CLASSES);
-  
-  const [createClass, { loading: createLoading }] = useMutation(CREATE_CLASS, {
-    onCompleted: () => {
-      handleCloseDialog();
-      refetch();
-      showSnackbar("Cours créé avec succès", "success");
-    },
-    onError: (error) => {
-      showSnackbar(`Erreur: ${error.message}`, "error");
+  // Récupérer les classes du professeur
+  const { loading, error, data, refetch } = useProfessorClasses();
+  const [createClassMutation, { loading: createLoading }] = useCreateClass();
+  const [deleteClassMutation, { loading: deleteLoading }] = useDeleteClass();
+
+
+  // Calculer le nombre total d'étudiants inscrits
+  useEffect(() => {
+    if (data?.professorClasses) {
+      const fetchEnrollmentCounts = async () => {
+        const counts: EnrollmentData[] = [];
+
+        for (const cls of data.professorClasses) {
+          try {
+            const result = await fetchEnrollmentsForClass(cls.id);
+            counts.push({
+              classId: cls.id,
+              count: result?.classEnrollments?.length || 0
+            });
+          } catch (err) {
+            console.error(`Failed to fetch enrollments for class ${cls.id}:`, err);
+            counts.push({ classId: cls.id, count: 0 });
+          }
+        }
+
+        setEnrollmentCounts(counts);
+      };
+
+      fetchEnrollmentCounts();
     }
-  });
-  
-  const [updateClass, { loading: updateLoading }] = useMutation(UPDATE_CLASS, {
-    onCompleted: () => {
-      handleCloseDialog();
-      refetch();
-      showSnackbar("Cours mis à jour avec succès", "success");
-    },
-    onError: (error) => {
-      showSnackbar(`Erreur: ${error.message}`, "error");
-    }
-  });
-  
-  const [deleteClass, { loading: deleteLoading }] = useMutation(DELETE_CLASS, {
-    onCompleted: () => {
-      handleCloseDialog();
-      refetch();
-      showSnackbar("Cours supprimé avec succès", "success");
-    },
-    onError: (error) => {
-      showSnackbar(`Erreur: ${error.message}`, "error");
-    }
-  });
+  }, [data]);
 
+  const fetchEnrollmentsForClass = async (classId: string) => {
+    const { client } = useClassEnrollments('');
+    const { data } = await client.query({
+      query: GET_CLASS_ENROLLMENTS,
+      variables: { classId }
+    });
 
-  interface ProfessorClass {
-    id: string;
-    title: string;
-    start: string;
-    end: string;
-    description: string;
-    room: string;
-    color: string;
-  }
+    return data;
+  };
 
-  interface DateClickInfo {
-    dateStr: string;
-  }
-
-  // Formater les événements pour FullCalendar
-  const events = data?.professorClasses.map((classItem: ProfessorClass) => ({
-    id: classItem.id,
-    title: classItem.title,
-    start: classItem.start,
-    end: classItem.end,
-    extendedProps: {
-      description: classItem.description,
-      room: classItem.room
-    },
-    backgroundColor: classItem.color || '#3788d8',
-    borderColor: classItem.color || '#3788d8'
-  })) || [];
-
-  const handleDateClick = (info: DateClickInfo) => {
-    const start = new Date(info.dateStr);
-    const end = new Date(start);
-    end.setHours(start.getHours() + 1);
-    
-    setCurrentClass({
+  const resetForm = () => {
+    setFormData({
       title: '',
       description: '',
-      start: info.dateStr,
-      end: end.toISOString().slice(0, 16),
+      start: '',
+      end: '',
       room: '',
-      color: '#3788d8'
+      color: '#4A90E2',
+      courseId: ''
     });
-    
-    setIsEditing(false);
-    setOpenDialog(true);
   };
 
-  const handleEventClick = (info : EventClickArg) => {
-    const event = info.event;
-    setCurrentClass({
-      id: event.id,
-      title: event.title,
-      description: event.extendedProps.description || '',
-      start: event.start ? event.start.toISOString().slice(0, 16) :'',
-      end: event.end ? event.end.toISOString().slice(0, 16) : '',
-      room: event.extendedProps.room || '',
-      color: event.backgroundColor
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
     });
-    
-    setIsEditing(true);
-    setOpenDialog(true);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value } = e.target as { name: string; value: string };
-    setCurrentClass(prev => ({ ...prev, [name]: value }));
-    
-    // Nettoyage de l'erreur lorsque l'utilisateur modifie le champ
-    if (errors[name as keyof ClassFormData]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setErrors({});
-  };
-
-  const handleSubmit = () => {
-    try {
-      // Validation avec Zod
-      classSchema.parse(currentClass);
-      
-      if (isEditing && currentClass.id) {
-        // Mise à jour d'un cours existant
-        updateClass({
-          variables: {
-            id: currentClass.id,
-            input: {
-              title: currentClass.title,
-              description: currentClass.description,
-              start: currentClass.start,
-              end: currentClass.end,
-              room: currentClass.room,
-              color: currentClass.color
-            }
-          }
-        });
-      } else {
-        // Création d'un nouveau cours
-        createClass({
-          variables: {
-            input: {
-              title: currentClass.title,
-              description: currentClass.description,
-              start: currentClass.start,
-              end: currentClass.end,
-              room: currentClass.room,
-              color: currentClass.color
-            }
-          }
-        });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createClassMutation({
+      variables: { input: formData },
+      onCompleted: () => {
+        refetch();
+        setOpen(false);
+        resetForm();
+        showAlertMessage('Class created successfully!', 'success');
+      },
+      onError: (error) => {
+        showAlertMessage(`Error creating class: ${error.message}`, 'error');
       }
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        // Formatage des erreurs de validation Zod
-        const fieldErrors: Partial<Record<keyof ClassFormData, string>> = {};
-        err.errors.forEach(error => {
-          const field = error.path[0] as keyof ClassFormData;
-          fieldErrors[field] = error.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        showSnackbar("Une erreur s'est produite", "error");
-        console.error(err);
-      }
-    }
+    });
   };
 
-  const handleDelete = () => {
-    if (currentClass.id) {
-      deleteClass({
-        variables: {
-          id: currentClass.id
+
+  const handleDeleteClass = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this class?')) {
+      deleteClassMutation({
+        variables: { id },
+        onCompleted: () => {
+          refetch();
+          showAlertMessage('Class deleted successfully!', 'success');
+        },
+        onError: (error) => {
+          showAlertMessage(`Error deleting class: ${error.message}`, 'error');
         }
       });
     }
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
+
+  const handleViewDetails = (id: string) => {
+    navigate(`/professor/classes/${id}`);
+  };
+
+  const showAlertMessage = (message: string, severity: 'success' | 'error') => {
+    setAlertMessage(message);
+    setAlertSeverity(severity);
+    setShowAlert(true);
+  };
+
+  const handleCloseAlert = () => {
+    setShowAlert(false);
+  };
+
+  const handleRequestSort = (property: keyof Class) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedClasses = React.useMemo(() => {
+    if (!data?.professorClasses) return [];
+
+    return [...data.professorClasses].sort((a, b) => {
+      if (orderBy === 'title') {
+        return order === 'asc'
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title);
+      }
+      return 0;
     });
-  };
+  }, [data, order, orderBy]);
 
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
+  const totalStudents = enrollmentCounts.reduce((sum, item) => sum + item.count, 0);
+  const activeClasses = data?.professorClasses?.filter(c => new Date(c.end) > new Date()).length || 0;
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+  if (loading) return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
         <CircularProgress />
       </Box>
-    );
-  }
+  );
 
-  if (error) {
-    return (
+  if (error) return (
       <Container>
-        <Paper sx={{ p: 3, mt: 3 }}>
-          <Typography color="error" variant="h6">
-            Erreur de chargement des données: {error.message}
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={() => refetch()}
-            sx={{ mt: 2 }}
-          >
-            Réessayer
-          </Button>
-        </Paper>
+        <Alert severity="error" sx={{ mt: 4 }}>
+          Error: {error.message}
+        </Alert>
       </Container>
-    );
-  }
+  );
 
   return (
-    <Container maxWidth="lg">
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Gestion des cours
-        </Typography>
-        
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body1">
-            Utilisez ce calendrier pour gérer vos cours. Cliquez sur une date pour ajouter un nouveau cours, ou sur un cours existant pour le modifier.
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Class Management
           </Typography>
+          <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpen(true)}
+          >
+            Create New Class
+          </Button>
         </Box>
-        
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-          }}
-          events={events}
-          editable={true}
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          weekends={true}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-          height="auto"
-          locale="fr"
-          buttonText={{
-            today: "Aujourd'hui",
-            month: 'Mois',
-            week: 'Semaine',
-            day: 'Jour'
-          }}
-        />
-      </Paper>
 
-      {/* Dialogue pour créer/modifier un cours */}
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {isEditing ? 'Modifier le cours' : 'Créer un nouveau cours'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Titre du cours"
-                name="title"
-                value={currentClass.title}
-                onChange={handleInputChange}
-                error={!!errors.title}
-                helperText={errors.title}
-                required
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                name="description"
-                value={currentClass.description}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date et heure de début"
-                name="start"
-                type="datetime-local"
-                value={currentClass.start}
-                onChange={handleInputChange}
-                error={!!errors.start}
-                helperText={errors.start}
-                required
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date et heure de fin"
-                name="end"
-                type="datetime-local"
-                value={currentClass.end}
-                onChange={handleInputChange}
-                error={!!errors.end}
-                helperText={errors.end}
-                required
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Salle"
-                name="room"
-                value={currentClass.room}
-                onChange={handleInputChange}
-                error={!!errors.room}
-                helperText={errors.room}
-                required
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Couleur"
-                name="color"
-                type="color"
-                value={currentClass.color}
-                onChange={handleInputChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
+        {/* Stats Cards */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
+                <SchoolIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Total Classes
+                  </Typography>
+                  <Typography variant="h5">
+                    {data?.professorClasses?.length || 0}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
           </Grid>
-        </DialogContent>
-        
-        <DialogActions>
-          {isEditing && (
-            <Button 
-              color="error" 
-              onClick={handleDelete}
-              disabled={createLoading || updateLoading || deleteLoading}
-            >
-              {deleteLoading ? <CircularProgress size={24} /> : 'Supprimer'}
-            </Button>
-          )}
-          <Button 
-            onClick={handleCloseDialog}
-            disabled={createLoading || updateLoading || deleteLoading}
-          >
-            Annuler
-          </Button>
-          <Button 
-            color="primary" 
-            onClick={handleSubmit}
-            disabled={createLoading || updateLoading || deleteLoading}
-            variant="contained"
-          >
-            {(createLoading || updateLoading) ? 
-              <CircularProgress size={24} /> : 
-              isEditing ? 'Mettre à jour' : 'Créer'
-            }
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
+                <CalendarIcon sx={{ fontSize: 40, mr: 2, color: 'success.main' }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Active Classes
+                  </Typography>
+                  <Typography variant="h5">
+                    {activeClasses}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
+                <GroupIcon sx={{ fontSize: 40, mr: 2, color: 'info.main' }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Students Enrolled
+                  </Typography>
+                  <Typography variant="h5">
+                    {totalStudents}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
 
-      {/* Snackbar pour les notifications */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+        {/* Classes Table */}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <TableSortLabel
+                      active={orderBy === 'title'}
+                      direction={orderBy === 'title' ? order : 'asc'}
+                      onClick={() => handleRequestSort('title')}
+                  >
+                    Title
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>Room</TableCell>
+                <TableCell>Start Date</TableCell>
+                <TableCell>End Date</TableCell>
+                <TableCell>Students</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedClasses.map((cls: Class) => {
+                const studentCount = enrollmentCounts.find(e => e.classId === cls.id)?.count || 0;
+                const isActive = new Date(cls.end) > new Date();
+
+                return (
+                    <TableRow key={cls.id}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box
+                              sx={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                bgcolor: cls.color || '#4A90E2',
+                                mr: 1
+                              }}
+                          />
+                          {cls.title}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{cls.room}</TableCell>
+                      <TableCell>{new Date(cls.start).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(cls.end).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Chip
+                            label={studentCount}
+                            color={studentCount > 0 ? "primary" : "default"}
+                            size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="View details">
+                          <IconButton
+                              color="primary"
+                              onClick={() => handleViewDetails(cls.id)}
+                          >
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={studentCount > 0 ? "Cannot delete class with students" : "Delete class"}>
+                      <span>
+                        <IconButton
+                            color="error"
+                            onClick={() => handleDeleteClass(cls.id)}
+                            disabled={studentCount > 0}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                );
+              })}
+              {sortedClasses.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Typography sx={{ py: 2 }}>
+                        No classes found. Create your first class!
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Create Class Dialog */}
+        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Create New Class</DialogTitle>
+          <form onSubmit={handleSubmit}>
+            <DialogContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                      name="title"
+                      label="Class Title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                      name="description"
+                      label="Description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                      name="start"
+                      label="Start Date & Time"
+                      type="datetime-local"
+                      value={formData.start}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                      name="end"
+                      label="End Date & Time"
+                      type="datetime-local"
+                      value={formData.end}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                      name="room"
+                      label="Room"
+                      value={formData.room}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                      name="color"
+                      label="Color"
+                      type="color"
+                      value={formData.color}
+                      onChange={handleInputChange}
+                      fullWidth
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                      name="courseId"
+                      label="Course ID (optional)"
+                      value={formData.courseId}
+                      onChange={handleInputChange}
+                      fullWidth
+                      margin="normal"
+                  />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="contained" color="primary">Create</Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+
+        {/* Alert/Notification */}
+        <Snackbar open={showAlert} autoHideDuration={6000} onClose={handleCloseAlert}>
+          <Alert onClose={handleCloseAlert} severity={alertSeverity} sx={{ width: '100%' }}>
+            {alertMessage}
+          </Alert>
+        </Snackbar>
+      </Container>
   );
 };
 

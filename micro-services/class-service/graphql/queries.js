@@ -18,7 +18,7 @@ const queries = {
         resolve: async (_, { sortBy }) => {
             let sort = {};
             if (sortBy === "name") {
-                sort = { name: 1 };
+                sort = { title: 1 };
             }
             return Class.find({}).sort(sort);
         },
@@ -143,6 +143,20 @@ const queries = {
             }
         },
     },
+
+    professorClasses: {
+        type: new GraphQLList(ClassType),
+        resolve: async (_, __, { user }) => {
+            console.log("Resolved user in professorClasses:", user);
+            if (!user || user.role !== "professor") {
+                throw new Error("Not authorized");
+            }
+
+            return Class.find({ professorId: user.id });
+        },
+    },
+
+
     // Removed _sdl field to avoid conflicts with API gateway
 };
 

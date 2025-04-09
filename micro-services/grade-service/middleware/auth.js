@@ -6,7 +6,7 @@ const authMiddleware = async (req) => {
 
     try {
         const response = await fetch(
-            process.env.AUTH_SERVICE_URL || "http://localhost:8080/graphql",
+            process.env.AUTH_SERVICE_URL,
             {
                 method: "POST",
                 headers: {

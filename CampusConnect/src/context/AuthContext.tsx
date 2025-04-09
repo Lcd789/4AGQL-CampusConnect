@@ -1,13 +1,9 @@
 // src/context/AuthContext.tsx
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { decodeJWT } from "../utils/jwt";
-
-type User = {
-  id: string;
-  email: string;
-  role: "student" | "professor";
-  name: string;
-};
+import { useValidateToken } from "../api/auth/authQueries";
+import { useRefreshToken} from "../api/auth/authMutations.ts";
+import { User } from "../api/types";
 
 type AuthContextType = {
   user: User | null;
@@ -27,51 +23,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Utiliser la requête validateToken pour vérifier le token côté serveur
+  const { data: tokenData, loading: tokenLoading, error: tokenError } =
+      useValidateToken(token || "");
+
+  const [refreshTokenMutation] = useRefreshToken();
+
   useEffect(() => {
     const initAuth = async () => {
-      if (token) {
-        try {
-          // Vérifier si le token est valide
-          const decoded = decodeJWT(token);
-          
-          // Vérifier si le token n'est pas expiré
-          if (decoded.exp * 1000 < Date.now()) {
-            const refreshed = await refreshToken();
-            if (!refreshed) {
-              handleLogout();
-            }
-          } else {
-            setUser({
-              id: decoded.sub,
-              email: decoded.email,
-              role: decoded.role,
-              name: decoded.name
-            });
-            setIsAuthenticated(true);
-          }
-        } catch (error) {
-          console.error("Token invalide", error);
-          handleLogout();
-        }
+      if (!token) {
+        setLoading(false);
+        return;
       }
+
+      try {
+        // Vérification côté client pour détecter les tokens expirés
+        const decoded = decodeJWT(token);
+
+        // Si le token est expiré, essayer de le rafraîchir
+        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            handleLogout();
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Si validateToken a réussi, on utilise les données du serveur
+        if (tokenData && tokenData.validateToken) {
+          setUser(tokenData.validateToken);
+          setIsAuthenticated(true);
+        } else if (tokenError) {
+          // Si validateToken échoue, essayer de rafraîchir le token
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            handleLogout();
+          }
+        }
+      } catch (error) {
+        console.error("Erreur d'authentification", error);
+        handleLogout();
+      }
+
       setLoading(false);
     };
 
-    initAuth();
-  }, [token]);
+    if (!tokenLoading) {
+      initAuth();
+    }
+  }, [token, tokenData, tokenLoading, tokenError]);
 
   const login = (newToken: string) => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    
-    const decoded = decodeJWT(newToken);
-    setUser({
-      id: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
-      name: decoded.name
-    });
-    setIsAuthenticated(true);
+
+    try {
+      const decoded = decodeJWT(newToken);
+      setUser({
+        id: decoded.userId || decoded.sub,
+        email: decoded.email,
+        role: decoded.role,
+        username: decoded.username || decoded.name || ''
+      });
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error("Erreur lors du décodage du token", error);
+    }
   };
 
   const handleLogout = () => {
@@ -83,22 +101,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshToken = async (): Promise<boolean> => {
     try {
-      // Appel à votre API pour rafraîchir le token
-      const response = await fetch('YOUR_API_URL/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Pour inclure les cookies
+      // Utilisation du endpoint GraphQL pour rafraîchir le token
+      const { data } = await refreshTokenMutation({
+        context: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
       });
-      
-      if (!response.ok) {
-        throw new Error('Échec du rafraîchissement du token');
+
+      if (data?.refreshToken?.token) {
+        login(data.refreshToken.token);
+        return true;
       }
-      
-      const data = await response.json();
-      login(data.token);
-      return true;
+      return false;
     } catch (error) {
       console.error("Erreur lors du rafraîchissement du token", error);
       return false;
@@ -106,19 +122,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated,
-        loading,
-        login,
-        logout: handleLogout,
-        refreshToken
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider
+          value={{
+            user,
+            token,
+            isAuthenticated,
+            loading,
+            login,
+            logout: handleLogout,
+            refreshToken
+          }}
+      >
+        {children}
+      </AuthContext.Provider>
   );
 };
 

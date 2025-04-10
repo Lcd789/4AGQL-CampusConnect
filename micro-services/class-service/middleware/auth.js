@@ -13,7 +13,7 @@ const authMiddleware = async (req) => {
 
     // Log tous les headers reçus
     console.log("\n=== CLASS SERVICE REQUEST HEADERS ===");
-    console.log(JSON.stringify(req.headers, null, 2));
+    console.log(req.headers)
 
     // Log spécifique pour le header Authorization
     console.log("\n=== AUTH HEADER DETAILS ===");

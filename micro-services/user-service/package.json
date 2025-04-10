@@ -1,7 +1,7 @@
 {
     "name": "auth-service",
     "version": "1.0.0",
-    "description": "Authentication Service for SchoolInc",
+    "description": "Authentication Service for CampusConnect",
     "main": "index.js",
     "scripts": {
         "start": "nodemon index.js",

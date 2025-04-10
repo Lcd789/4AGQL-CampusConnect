@@ -43,9 +43,6 @@ export const REFRESH_TOKEN_MUTATION = gql`
     }
 `;
 
-
-// UseRoutes
-
 export const useLogin = () => {
     return useMutation<
         { login: AuthPayload },

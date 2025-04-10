@@ -1,7 +1,7 @@
 {
   "name": "grade-service",
   "version": "1.0.0",
-  "description": "Grade Management Service for SchoolInc",
+  "description": "Grade Management Service for CampusConnect",
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",

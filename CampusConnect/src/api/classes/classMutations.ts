@@ -53,8 +53,6 @@ export const REMOVE_STUDENT = gql`
     }
 `;
 
-// Hook functions for mutations
-
 export const useCreateClass = () => {
     return useMutation<
         { createClass: Class },

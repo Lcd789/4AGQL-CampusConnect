@@ -31,8 +31,6 @@ export const DELETE_USER_MUTATION = gql`
     }
 `;
 
-
-// Hook pour mettre à jour le rôle d'un utilisateur (pour les professeurs)
 export const useUpdateUserRole = () => {
     return useMutation<
         { updateUserRole: User },
@@ -40,7 +38,6 @@ export const useUpdateUserRole = () => {
     >(UPDATE_USER_ROLE_MUTATION);
 };
 
-// Hook pour mettre à jour n'importe quel utilisateur (pour les professeurs)
 export const useUpdateUser = () => {
     return useMutation<
         { updateUser: User },

@@ -1,7 +1,7 @@
 {
   "name": "class-service",
   "version": "1.0.0",
-  "description": "Class Management Service for SchoolInc",
+  "description": "Class Management Service for CampusConnect",
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",

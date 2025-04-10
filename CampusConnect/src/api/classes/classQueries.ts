@@ -67,8 +67,6 @@ export const GET_CLASS_ENROLLMENTS = gql`
     }
 `;
 
-// Hook functions for queries
-
 export const useProfessorClasses = () => {
     return useQuery<{ professorClasses: Class[] }>(
         GET_PROFESSOR_CLASSES,
@@ -81,7 +79,7 @@ export const useProfessorClasses = () => {
                 }
             }
             ,
-            fetchPolicy: 'network-only'  // Force le rechargement des données
+            fetchPolicy: 'network-only'
         }
     )
         ;

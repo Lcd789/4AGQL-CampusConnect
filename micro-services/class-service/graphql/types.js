@@ -12,6 +12,7 @@ const {
     GraphQLInt,
     GraphQLFloat
 } = require('graphql');
+const mongoose = require('mongoose');
 
 /**
  * Reference type for User information
@@ -93,7 +94,7 @@ const ClassType = new GraphQLObjectType({
     fields: () => ({
         id: {
             type: GraphQLID,
-            resolve: parent => parent._id ||parent.id
+            resolve: parent => parent._id || parent.id
         },
         title: {
             type: GraphQLString,
@@ -117,6 +118,33 @@ const ClassType = new GraphQLObjectType({
         professorId: {
             type: GraphQLID,
             resolve: parent => parent.professor
+        },
+        professor: {
+            type: UserType,
+            resolve: async (parent) => {
+                if (!parent.professor) return null;
+
+                try {
+                    // Accéder à la base de données utilisateurs
+                    const userDb = mongoose.createConnection(process.env.USER_DB_URI);
+                    const UserSchema = require("../models/User").schema;
+                    const UserModel = userDb.model("User", UserSchema);
+
+                    const user = await UserModel.findById(parent.professor);
+
+                    if (!user) return null;
+
+                    return {
+                        id: user._id,
+                        email: user.email,
+                        username: user.username,
+                        role: user.role
+                    };
+                } catch (error) {
+                    console.error("Erreur lors de la récupération du professeur:", error);
+                    return null;
+                }
+            }
         },
         courseId: { type: GraphQLID },
         createdAt: { type: GraphQLString },

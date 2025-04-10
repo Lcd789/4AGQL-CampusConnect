@@ -33,6 +33,34 @@ const queries = new GraphQLObjectType({
             },
             resolve: async (_, { id }, context) => {
                 // Implementation...
+                if(!user){
+                    throw new Error('Unauthorized');
+                }
+
+                const grade = await Grade.findById(id)
+                    .populate('student')
+                    .populate('course')
+                    .populate('class');
+
+                if(!grade){
+                    throw new Error(`Grade of ID ${id} not found`);
+                }
+
+                if(user.role === 'student'){
+                    // a student can only see his own grades
+                    if(grade.student.id !== user.id){
+                        throw new Error('Unauthorized, you cannot view this grade');
+                    }
+                } else if(user.role === 'professor'){
+                    const classItem = await Class.findById(grade.classId);
+                    if(!classItem){
+                        throw new Error(`Class of ID ${grade.classId} not found`);
+                    }
+                    if(classItem.professorId !== user.id){
+                        throw new Error('Unauthorized, you cannot view this grade');
+                    }
+                }
+                return grade;
             }
         },
 
@@ -54,8 +82,27 @@ const queries = new GraphQLObjectType({
                 studentId: { type: new GraphQLNonNull(GraphQLID) },
                 courseId: { type: GraphQLID }
             },
-            resolve: async (_, { studentId, courseId }, context) => {
-                // Implementation...
+            resolve: async (_, { studentId, classId }, {user}) => {
+                if(!user){
+                    throw new Error('Unauthorized');
+                }
+
+                if(user.role === 'student'){
+                    if (user.id.toString() !== studentId.toString()) {
+                        throw new Error("Vous n'êtes pas autorisé à accéder aux notes de cet étudiant");
+                    }
+
+                } else if (user.role === 'professor') {
+                    if(classId) {
+                        const classItem = await Class.findById(classId);
+                        if(!classItem){
+                            throw new Error(`Class of ID ${classId} not found`);
+                        }
+                        if(classItem.professorId !== user.id){
+                            throw new Error('Unauthorized, you cannot view this grade');
+                        }
+                    }
+                }
             }
         },
 

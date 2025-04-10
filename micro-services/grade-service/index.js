@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 8081;
 async function startApolloServer() {
     const server = new ApolloServer({
         schema,
+        introspection: "production"
     });
 
     await server.start();

@@ -116,6 +116,7 @@
 │  │  │  └─ auth.js
 │  │  ├─ models
 │  │  │  ├─ Course.js
+│  │  │  ├─ Enrollment.js
 │  │  │  ├─ Grade.js
 │  │  │  └─ User.js
 │  │  ├─ package-lock.json

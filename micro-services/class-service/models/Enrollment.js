@@ -1,9 +1,23 @@
-const mongoose = require("mongoose");
+// models/Enrollment.js
+const mongoose = require('mongoose');
 
 const EnrollmentSchema = new mongoose.Schema({
-    classId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    studentId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    enrolledAt: { type: Date, default: Date.now },
+    classId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Class'
+    },
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+    },
+    enrolledAt: {
+        type: Date,
+        default: Date.now
+    }
 });
 
-module.exports = mongoose.model("Enrollment", EnrollmentSchema);
+// Index pour optimiser les recherches et assurer l'unicité
+EnrollmentSchema.index({ classId: 1, studentId: 1 }, { unique: true });
+
+module.exports = mongoose.model('Enrollment', EnrollmentSchema);

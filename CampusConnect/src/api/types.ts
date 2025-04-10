@@ -54,7 +54,6 @@ export interface ClassInput {
     end: string;
     room: string;
     color: string;
-    courseId?: string;
 }
 
 export interface Enrollment {

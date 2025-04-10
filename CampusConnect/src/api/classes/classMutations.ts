@@ -12,7 +12,6 @@ export const CREATE_CLASS = gql`
             room
             color
             professorId
-            courseId
         }
     }
 `;

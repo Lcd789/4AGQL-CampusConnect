@@ -2,14 +2,20 @@ serve:
   port: 4000
   hostname: 0.0.0.0
   playground: true
+  cors:
+    origin: '*'
+    credentials: true
+    allowedHeaders: [ 'Authorization', 'Content-Type' ]
+    exposedHeaders: ['Authorization']
+
 
 sources:
-  - name: AuthService
+  - name: UserService
     handler:
       graphql:
-        endpoint: ${AUTH_SERVICE_URL}
+        endpoint: ${USER_SERVICE_URL}
         operationHeaders:
-          Authorization: Bearer {context.headers.authorization}
+          Authorization: "{context.headers.authorization}"
         timeout: 5000
         retry: 3
   - name: GradeService
@@ -17,7 +23,7 @@ sources:
       graphql:
         endpoint: ${GRADE_SERVICE_URL}
         operationHeaders:
-          Authorization: Bearer {context.headers.authorization}
+          Authorization: "{context.headers.authorization}"
         timeout: 5000
         retry: 3
   - name: ClassService
@@ -25,14 +31,14 @@ sources:
       graphql:
         endpoint: ${CLASS_SERVICE_URL}
         operationHeaders:
-          Authorization: Bearer {context.headers.authorization}
+          Authorization: "{context.headers.authorization}"
         timeout: 5000
         retry: 3
 transforms:
   - rename:
       renames:
-        - from: Query.authService_*
-          to: auth_*
+        - from: Query.userService_*
+          to: user_*
         - from: Query.gradeService_*
           to: grade_*
         - from: Query.classService_*

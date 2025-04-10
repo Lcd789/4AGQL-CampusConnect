@@ -1,9 +1,9 @@
-import { gql, useQuery } from '@apollo/client';
-import { Class, Enrollment } from '../types.ts';
+import {gql, useQuery} from '@apollo/client';
+import {Class, Enrollment} from '../types.ts';
 
 export const GET_PROFESSOR_CLASSES = gql`
     query GetProfessorClasses {
-        professorClasses {
+        myClasses {
             id
             title
             description
@@ -70,19 +70,33 @@ export const GET_CLASS_ENROLLMENTS = gql`
 // Hook functions for queries
 
 export const useProfessorClasses = () => {
-    return useQuery<{ professorClasses: Class[] }>(GET_PROFESSOR_CLASSES);
+    return useQuery<{ professorClasses: Class[] }>(
+        GET_PROFESSOR_CLASSES,
+        {
+            context: {
+                headers: {
+                    authorization: localStorage.getItem('token')
+                        ? `Bearer ${localStorage.getItem('token')}`
+                        : ""
+                }
+            }
+            ,
+            fetchPolicy: 'network-only'  // Force le rechargement des données
+        }
+    )
+        ;
 };
 
 export const useClassDetail = (id: string) => {
     return useQuery<{ class: Class }>(
         GET_CLASS_DETAIL,
-        { variables: { id }, skip: !id }
+        {variables: {id}, skip: !id}
     );
 };
 
 export const useClassEnrollments = (classId: string) => {
     return useQuery<{ classEnrollments: Enrollment[] }>(
         GET_CLASS_ENROLLMENTS,
-        { variables: { classId }, skip: !classId }
+        {variables: {classId}, skip: !classId}
     );
 };

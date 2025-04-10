@@ -147,7 +147,13 @@ const queries = {
     professorClasses: {
         type: new GraphQLList(ClassType),
         resolve: async (_, __, { user }) => {
-            console.log("Resolved user in professorClasses:", user);
+            //console.log("Context complet:", JSON.stringify(context, null, 2));
+            //console.log("User dans le contexte:", context.user);
+
+            if (!user) throw new Error("Not authenticated");
+
+            console.log("User dans le contexte:", user);
+
             if (!user || user.role !== "professor") {
                 throw new Error("Not authorized");
             }

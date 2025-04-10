@@ -15,12 +15,23 @@ const UserType = new GraphQLObjectType({
     }),
 });
 
+/**
+ * Type representing the authentication payload returned after login/register operations
+ */
 const AuthPayloadType = new GraphQLObjectType({
     name: "AuthPayload",
+    description: "Authentication payload containing JWT token and user information",
     fields: () => ({
-        token: { type: GraphQLString },
-        user: { type: UserType }
+        token: {
+            type: GraphQLString,
+            description: "JWT token for authenticated requests"
+        },
+        user: {
+            type: UserType,
+            description: "The authenticated user information"
+        }
     })
 });
 
 module.exports = { UserType, AuthPayloadType };
+

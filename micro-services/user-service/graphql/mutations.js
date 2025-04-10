@@ -91,8 +91,26 @@ const mutations = {
         },
     },
 
+    /**
+     * Mutation to refresh the JWT token for an authenticated user.
+     * Requires a valid JWT token in the Authorization header.
+     * @example
+     * mutation {
+     *   refreshToken {
+     *     token
+     *     user {
+     *       id
+     *       email
+     *       username
+     *       role
+     *     }
+     *   }
+     * }
+     * @returns {AuthPayloadType} - Returns a new JWT token and the user information
+     */
     refreshToken: {
         type: AuthPayloadType,
+        description: "Refresh the JWT token for an authenticated user",
         resolve: async (_, __, { req }) => {
             // Extraire le token de l'en-tête Authorization
             const authHeader = req.headers.authorization || '';
@@ -114,14 +132,9 @@ const mutations = {
 
                 // Générer un nouveau token
                 const newToken = jwt.sign(
-                    {
-                        userId: user._id,
-                        email: user.email,
-                        role: user.role,
-                        username: user.username
-                    },
+                    { userId: user.id },
                     process.env.JWT_SECRET,
-                    { expiresIn: '7d' }
+                    { expiresIn: "1d" }
                 );
 
                 return {
@@ -129,10 +142,11 @@ const mutations = {
                     user
                 };
             } catch (error) {
-                throw new Error('Refresh token échoué');
+                throw new Error("Invalid or expired token");
             }
-        }
+        },
     },
+
 
 
     /**

@@ -1,18 +1,10 @@
-const fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
-const mongoose = require("mongoose");
-
-
-const UserSchema = require("../models/User").schema;
-
-const userDb = mongoose.createConnection(process.env.USER_DB_URI);
-
-const UserModel = userDb.model("User", UserSchema);
+const User = require("../models/User");
 
 const authMiddleware = async (req) => {
 
     // Log tous les headers reçus
-    console.log("\n=== CLASS SERVICE REQUEST HEADERS ===");
+    console.log("\n=== USER SERVICE REQUEST HEADERS ===");
     console.log(JSON.stringify(req.headers, null, 2));
 
     // Log spécifique pour le header Authorization
@@ -48,7 +40,7 @@ const authMiddleware = async (req) => {
         })}`);
 
 
-        const user = await UserModel.findById(decoded.userId);
+        const user = await User.findById(decoded.userId);
         if (user) {
             console.log(`\n=== USER FOUND ===`);
             console.log(`User ID: ${user._id}`);

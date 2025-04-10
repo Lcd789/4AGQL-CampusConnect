@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProfessorClasses, useClassEnrollments, GET_CLASS_ENROLLMENTS } from '../../api/classes/classQueries';
+import { useProfessorClasses, GET_CLASS_ENROLLMENTS } from '../../api/classes/classQueries';
+import { apolloClient } from '../../api/graphqlConfig.ts';
 import { useCreateClass, useDeleteClass } from '../../api/classes/classMutations';
 import {
   Box,
@@ -47,6 +48,15 @@ interface EnrollmentData {
 
 const ClassManagement: React.FC = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Rediriger vers la page de connexion si non authentifié
+      navigate('/login');
+    }
+  }, [navigate]);
+
   const [open, setOpen] = useState(false);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<keyof Class>('title');
@@ -73,6 +83,7 @@ const ClassManagement: React.FC = () => {
 
   // Calculer le nombre total d'étudiants inscrits
   useEffect(() => {
+    console.log(`classManagement useEffect if (data?.professorClasses)`)
     if (data?.professorClasses) {
       const fetchEnrollmentCounts = async () => {
         const counts: EnrollmentData[] = [];
@@ -98,14 +109,18 @@ const ClassManagement: React.FC = () => {
   }, [data]);
 
   const fetchEnrollmentsForClass = async (classId: string) => {
-    const { client } = useClassEnrollments('');
-    const { data } = await client.query({
-      query: GET_CLASS_ENROLLMENTS,
-      variables: { classId }
-    });
-
-    return data;
+    try {
+      const { data } = await apolloClient.query({
+        query: GET_CLASS_ENROLLMENTS,
+        variables: { classId }
+      });
+      return data;
+    } catch (error) {
+      console.error(`Error fetching enrollments: ${error}`);
+      return { classEnrollments: [] };
+    }
   };
+
 
   const resetForm = () => {
     setFormData({
